@@ -811,6 +811,31 @@
 .win-title { font-size: 1.6rem; font-weight: 900; color: var(--accent); }
 .win-sub { font-size: 0.9rem; color: var(--text2); }
 
+.solitaire-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 88px 16px 16px;
+  z-index: 300;
+  backdrop-filter: blur(1px);
+}
+
+.solitaire-prompt-card {
+  width: min(420px, 100%);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--card-shadow);
+}
+
 /* ===== SHARED GAME OVERLAY ===== */
 .game-overlay {
   position: fixed;

@@ -13,6 +13,8 @@ export default function SolitairePage() {
   const [history, setHistory] = useState([])
   const [won, setWon] = useState(false)
   const [showAutoModal, setShowAutoModal] = useState(false)
+  const [autoPromptShown, setAutoPromptShown] = useState(false)
+  const [autoCompleting, setAutoCompleting] = useState(false)
 
   function saveHistory(s) {
     setHistory(prev => [...prev.slice(-30), structuredClone(s)])
@@ -23,6 +25,9 @@ export default function SolitairePage() {
     setSelected(null)
     setHistory([])
     setWon(false)
+    setShowAutoModal(false)
+    setAutoPromptShown(false)
+    setAutoCompleting(false)
   }
 
   function undo() {
@@ -193,6 +198,7 @@ export default function SolitairePage() {
     if (!hasAvailableMove) return
 
     saveHistory(state)
+    setAutoCompleting(true)
     
     // Get animation steps
     const steps = getAutoCompleteSteps(state)
@@ -209,22 +215,24 @@ export default function SolitairePage() {
               if (checkWonState(s)) setWon(true)
               return s
             })
+            setAutoCompleting(false)
           }, 100)
         }
       }, index * 200)
     })
   }
 
-  function allCardsRevealed(s) {
-    return s.tableau.every(col => col.every(card => card.faceUp))
+  function autoCompleteReady(s) {
+    return s.stock.length === 0 && s.tableau.every(col => col.every(card => card.faceUp))
   }
 
   useEffect(() => {
-    if (won) return
-    if (allCardsRevealed(state) && hasAutoCompleteMove(state)) {
+    if (won || autoCompleting || showAutoModal || autoPromptShown) return
+    if (autoCompleteReady(state) && hasAutoCompleteMove(state)) {
       setShowAutoModal(true)
+      setAutoPromptShown(true)
     }
-  }, [state, won])
+  }, [state, won, autoCompleting, showAutoModal, autoPromptShown])
 
   const { tableau, stock, waste, foundations, score } = state
 
@@ -242,15 +250,15 @@ export default function SolitairePage() {
       )}
 
       {showAutoModal && (
-        <div className="win-overlay">
-          <div className="win-card">
+        <div className="solitaire-prompt-overlay">
+          <div className="solitaire-prompt-card">
             <div className="win-title">{t('solitaireAutoComplete')}</div>
             <div className="win-sub" style={{ marginBottom: 20 }}>{t('solitaireAutoCompleteDesc')}</div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
               <button className="btn" onClick={() => { setShowAutoModal(false); autoComplete() }}>
                 {t('solitaireYes')}
               </button>
-              <button className="btn btn-ghost" onClick={() => setShowAutoModal(false)}>
+              <button className="btn btn-ghost" onClick={() => { setShowAutoModal(false); setAutoPromptShown(true) }}>
                 {t('solitaireNo')}
               </button>
             </div>
