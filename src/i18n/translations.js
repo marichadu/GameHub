@@ -60,6 +60,7 @@ export const translations = {
     solitaireDesc: 'Klondike classique',
     solitaireWin: 'Gagné ! Félicitations !',
     solitaireUndo: 'Annuler',
+    solitaireAutoComplete: 'Auto-compléter',
     solitaireNewGame: 'Nouvelle partie',
     solitaireHint: 'Indice',
 
@@ -175,6 +176,7 @@ export const translations = {
     solitaireDesc: 'Classic Klondike',
     solitaireWin: 'You won! Congratulations!',
     solitaireUndo: 'Undo',
+    solitaireAutoComplete: 'Auto-complete',
     solitaireNewGame: 'New game',
     solitaireHint: 'Hint',
 

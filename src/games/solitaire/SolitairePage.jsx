@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useLang } from '../../contexts/LangContext'
-import { RotateCcw, Spade } from 'lucide-react'
+import { RotateCcw, Spade, Sparkles } from 'lucide-react'
 import {
   dealGame, canPlaceOnFoundation, canPlaceOnTableau,
   foundationSuitIdx, SUITS
@@ -14,7 +14,7 @@ export default function SolitairePage() {
   const [won, setWon] = useState(false)
 
   function saveHistory(s) {
-    setHistory(prev => [...prev.slice(-30), JSON.parse(JSON.stringify(s))])
+    setHistory(prev => [...prev.slice(-30), structuredClone(s)])
   }
 
   function newGame() {
@@ -30,10 +30,6 @@ export default function SolitairePage() {
     setHistory(h => h.slice(0, -1))
     setState(prev)
     setSelected(null)
-  }
-
-  function checkWon(s) {
-    return s.foundations.every(f => f.length === 13)
   }
 
   // Draw from stock
@@ -128,7 +124,7 @@ export default function SolitairePage() {
 
   // Click on foundation
   function clickFoundation(foundIdx) {
-    if (!selected || selected.cards.length !== 1) return
+    if (selected?.cards?.length !== 1) return
     const card = selected.cards[0]
     const foundation = state.foundations[foundIdx]
     const expectedSuit = SUITS[foundIdx]
@@ -156,7 +152,7 @@ export default function SolitairePage() {
       // Check win after state update
       setTimeout(() => {
         setState(s => {
-          if (checkWon(s)) setWon(true)
+          if (checkWonState(s)) setWon(true)
           return s
         })
       }, 100)
@@ -176,14 +172,7 @@ export default function SolitairePage() {
       setState(prev => {
         saveHistory(prev)
         const s = deepCopy(prev)
-        const c = s.tableau[colIdx].pop()
-        s.foundations[fi].push(c)
-        s.score += 10
-        const tc = s.tableau[colIdx]
-        if (tc.length > 0 && !tc[tc.length - 1].faceUp) {
-          tc[tc.length - 1].faceUp = true
-          s.score += 5
-        }
+        moveTableauTopToFoundationState(s, colIdx)
         return s
       })
       setSelected(null)
@@ -194,6 +183,28 @@ export default function SolitairePage() {
         })
       }, 100)
     }
+  }
+
+  function autoComplete() {
+    setSelected(null)
+
+    const hasAvailableMove = hasAutoCompleteMove(state)
+
+    if (!hasAvailableMove) return
+
+    setState(prev => {
+      saveHistory(prev)
+      const s = deepCopy(prev)
+      autoCompleteState(s)
+      return s
+    })
+
+    setTimeout(() => {
+      setState(s => {
+        if (checkWonState(s)) setWon(true)
+        return s
+      })
+    }, 100)
   }
 
   const { tableau, stock, waste, foundations, score } = state
@@ -297,6 +308,9 @@ export default function SolitairePage() {
           <button className="btn btn-ghost btn-sm" onClick={undo} disabled={history.length === 0}>
             ↩ {t('solitaireUndo')}
           </button>
+          <button className="btn btn-ghost btn-sm" onClick={autoComplete}>
+            <Sparkles size={15} style={{ verticalAlign:'middle', marginRight:5 }} />{t('solitaireAutoComplete')}
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={newGame}>
             <RotateCcw size={15} style={{ verticalAlign:'middle', marginRight:5 }} />{t('solitaireNewGame')}
           </button>
@@ -324,5 +338,75 @@ function PlayingCard({ card, isSelected }) {
 }
 
 function deepCopy(obj) {
-  return JSON.parse(JSON.stringify(obj))
+  return structuredClone(obj)
+}
+
+function checkWonState(s) {
+  return s.foundations.every(f => f.length === 13)
+}
+
+function moveWasteTopToFoundationState(s) {
+  if (s.waste.length === 0) return false
+  const card = s.waste[s.waste.length - 1]
+  const fi = foundationSuitIdx(card.suit)
+  if (!canPlaceOnFoundation(card, s.foundations[fi])) return false
+
+  s.waste.pop()
+  s.foundations[fi].push(card)
+  s.score += 10
+  return true
+}
+
+function moveTableauTopToFoundationState(s, colIdx) {
+  const col = s.tableau[colIdx]
+  if (col.length === 0) return false
+
+  const card = col[col.length - 1]
+  if (!card?.faceUp) return false
+
+  const fi = foundationSuitIdx(card.suit)
+  if (!canPlaceOnFoundation(card, s.foundations[fi])) return false
+
+  col.pop()
+  s.foundations[fi].push(card)
+  s.score += 10
+
+  if (col.length > 0 && !col[col.length - 1].faceUp) {
+    col[col.length - 1].faceUp = true
+    s.score += 5
+  }
+
+  return true
+}
+
+function autoCompleteState(s) {
+  while (true) {
+    if (moveWasteTopToFoundationState(s)) continue
+
+    let moved = false
+    for (let colIdx = 0; colIdx < s.tableau.length; colIdx++) {
+      if (moveTableauTopToFoundationState(s, colIdx)) {
+        moved = true
+        break
+      }
+    }
+
+    if (!moved) break
+  }
+
+  return s
+}
+
+function hasAutoCompleteMove(s) {
+  if (s.waste.length > 0) {
+    const card = s.waste[s.waste.length - 1]
+    const fi = foundationSuitIdx(card.suit)
+    if (canPlaceOnFoundation(card, s.foundations[fi])) return true
+  }
+
+  return s.tableau.some(col => {
+    const card = col[col.length - 1]
+    if (!card?.faceUp) return false
+    return canPlaceOnFoundation(card, s.foundations[foundationSuitIdx(card.suit)])
+  })
 }
