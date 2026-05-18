@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
-import { RotateCcw, Spade, Sparkles } from 'lucide-react'
+import { RotateCcw, Spade } from 'lucide-react'
 import {
   dealGame, canPlaceOnFoundation, canPlaceOnTableau,
   foundationSuitIdx, SUITS
@@ -12,7 +12,7 @@ export default function SolitairePage() {
   const [selected, setSelected] = useState(null) // { from: 'tableau'|'waste', col?, cardIdx?, cards }
   const [history, setHistory] = useState([])
   const [won, setWon] = useState(false)
-  const [showAutoPrompt, setShowAutoPrompt] = useState(false)
+  const [showAutoModal, setShowAutoModal] = useState(false)
 
   function saveHistory(s) {
     setHistory(prev => [...prev.slice(-30), structuredClone(s)])
@@ -190,22 +190,29 @@ export default function SolitairePage() {
     setSelected(null)
 
     const hasAvailableMove = hasAutoCompleteMove(state)
-
     if (!hasAvailableMove) return
 
-    setState(prev => {
-      saveHistory(prev)
-      const s = deepCopy(prev)
-      autoCompleteState(s)
-      return s
+    saveHistory(state)
+    
+    // Get animation steps
+    const steps = getAutoCompleteSteps(state)
+    
+    // Apply each step with 200ms delay
+    steps.forEach((stepState, index) => {
+      setTimeout(() => {
+        setState(stepState)
+        
+        // Check win after last step
+        if (index === steps.length - 1) {
+          setTimeout(() => {
+            setState(s => {
+              if (checkWonState(s)) setWon(true)
+              return s
+            })
+          }, 100)
+        }
+      }, index * 200)
     })
-
-    setTimeout(() => {
-      setState(s => {
-        if (checkWonState(s)) setWon(true)
-        return s
-      })
-    }, 100)
   }
 
   function allCardsRevealed(s) {
@@ -215,7 +222,7 @@ export default function SolitairePage() {
   useEffect(() => {
     if (won) return
     if (allCardsRevealed(state) && hasAutoCompleteMove(state)) {
-      setShowAutoPrompt(true)
+      setShowAutoModal(true)
     }
   }, [state, won])
 
@@ -234,15 +241,18 @@ export default function SolitairePage() {
         </div>
       )}
 
-      {showAutoPrompt && (
+      {showAutoModal && (
         <div className="win-overlay">
           <div className="win-card">
-            <div className="win-emoji"><Sparkles size={48} /></div>
-            <div className="win-title">{t('solitaireAutoPromptTitle')}</div>
-            <div className="win-sub" style={{ marginBottom: 12 }}>{t('solitaireAutoPromptMsg')}</div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button className="btn" onClick={() => { autoComplete(); setShowAutoPrompt(false) }}>{t('solitaireAutoPromptYes')}</button>
-              <button className="btn btn-ghost" onClick={() => setShowAutoPrompt(false)}>{t('solitaireAutoPromptNo')}</button>
+            <div className="win-title">{t('solitaireAutoComplete')}</div>
+            <div className="win-sub" style={{ marginBottom: 20 }}>{t('solitaireAutoCompleteDesc')}</div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button className="btn" onClick={() => { setShowAutoModal(false); autoComplete() }}>
+                {t('solitaireYes')}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setShowAutoModal(false)}>
+                {t('solitaireNo')}
+              </button>
             </div>
           </div>
         </div>
@@ -422,6 +432,31 @@ function autoCompleteState(s) {
   }
 
   return s
+}
+
+function getAutoCompleteSteps(initialState) {
+  const steps = [deepCopy(initialState)]
+  const s = deepCopy(initialState)
+
+  while (true) {
+    if (moveWasteTopToFoundationState(s)) {
+      steps.push(deepCopy(s))
+      continue
+    }
+
+    let moved = false
+    for (let colIdx = 0; colIdx < s.tableau.length; colIdx++) {
+      if (moveTableauTopToFoundationState(s, colIdx)) {
+        steps.push(deepCopy(s))
+        moved = true
+        break
+      }
+    }
+
+    if (!moved) break
+  }
+
+  return steps
 }
 
 function hasAutoCompleteMove(s) {
