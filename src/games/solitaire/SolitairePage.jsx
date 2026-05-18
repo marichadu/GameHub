@@ -345,6 +345,10 @@ function checkWonState(s) {
   return s.foundations.every(f => f.length === 13)
 }
 
+function checkWon(s) {
+  return checkWonState(s)
+}
+
 function moveWasteTopToFoundationState(s) {
   if (s.waste.length === 0) return false
   const card = s.waste[s.waste.length - 1]
