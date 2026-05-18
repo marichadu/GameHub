@@ -61,6 +61,10 @@ export const translations = {
     solitaireWin: 'Gagné ! Félicitations !',
     solitaireUndo: 'Annuler',
     solitaireAutoComplete: 'Auto-compléter',
+    solitaireAutoPromptTitle: 'Auto-complétion disponible',
+    solitaireAutoPromptMsg: 'Toutes les cartes sont révélées — voulez-vous compléter automatiquement vers les fondations ?',
+    solitaireAutoPromptYes: 'Auto-compléter',
+    solitaireAutoPromptNo: 'Plus tard',
     solitaireNewGame: 'Nouvelle partie',
     solitaireHint: 'Indice',
 
@@ -177,6 +181,10 @@ export const translations = {
     solitaireWin: 'You won! Congratulations!',
     solitaireUndo: 'Undo',
     solitaireAutoComplete: 'Auto-complete',
+    solitaireAutoPromptTitle: 'Auto-complete available',
+    solitaireAutoPromptMsg: 'All cards have been revealed — would you like to auto-complete to the foundations?',
+    solitaireAutoPromptYes: 'Auto-complete',
+    solitaireAutoPromptNo: 'Later',
     solitaireNewGame: 'New game',
     solitaireHint: 'Hint',
 

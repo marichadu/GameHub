@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { RotateCcw, Spade, Sparkles } from 'lucide-react'
 import {
@@ -12,6 +12,7 @@ export default function SolitairePage() {
   const [selected, setSelected] = useState(null) // { from: 'tableau'|'waste', col?, cardIdx?, cards }
   const [history, setHistory] = useState([])
   const [won, setWon] = useState(false)
+  const [showAutoPrompt, setShowAutoPrompt] = useState(false)
 
   function saveHistory(s) {
     setHistory(prev => [...prev.slice(-30), structuredClone(s)])
@@ -207,6 +208,17 @@ export default function SolitairePage() {
     }, 100)
   }
 
+  function allCardsRevealed(s) {
+    return s.tableau.every(col => col.every(card => card.faceUp))
+  }
+
+  useEffect(() => {
+    if (won) return
+    if (allCardsRevealed(state) && hasAutoCompleteMove(state)) {
+      setShowAutoPrompt(true)
+    }
+  }, [state, won])
+
   const { tableau, stock, waste, foundations, score } = state
 
   return (
@@ -218,6 +230,20 @@ export default function SolitairePage() {
             <div className="win-title">{t('solitaireWin')}</div>
             <div className="win-sub">{t('score')}: {score}</div>
             <button className="btn" onClick={newGame}><RotateCcw size={15} style={{ verticalAlign:'middle', marginRight:5 }} />{t('solitaireNewGame')}</button>
+          </div>
+        </div>
+      )}
+
+      {showAutoPrompt && (
+        <div className="win-overlay">
+          <div className="win-card">
+            <div className="win-emoji"><Sparkles size={48} /></div>
+            <div className="win-title">{t('solitaireAutoPromptTitle')}</div>
+            <div className="win-sub" style={{ marginBottom: 12 }}>{t('solitaireAutoPromptMsg')}</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button className="btn" onClick={() => { autoComplete(); setShowAutoPrompt(false) }}>{t('solitaireAutoPromptYes')}</button>
+              <button className="btn btn-ghost" onClick={() => setShowAutoPrompt(false)}>{t('solitaireAutoPromptNo')}</button>
+            </div>
           </div>
         </div>
       )}
@@ -307,9 +333,6 @@ export default function SolitairePage() {
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button className="btn btn-ghost btn-sm" onClick={undo} disabled={history.length === 0}>
             ↩ {t('solitaireUndo')}
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={autoComplete}>
-            <Sparkles size={15} style={{ verticalAlign:'middle', marginRight:5 }} />{t('solitaireAutoComplete')}
           </button>
           <button className="btn btn-ghost btn-sm" onClick={newGame}>
             <RotateCcw size={15} style={{ verticalAlign:'middle', marginRight:5 }} />{t('solitaireNewGame')}
